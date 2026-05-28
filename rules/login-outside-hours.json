@@ -1,0 +1,28 @@
+{
+  "kind": "Scheduled",
+  "properties": {
+    "displayName": "JumpCloud - Login Outside Business Hours",
+    "description": "Alerts on successful logins outside business hours (8am-8pm AEST, UTC+10). Covers AU, IN and PE team members.",
+    "severity": "Low",
+    "enabled": true,
+    "query": "JumpCloud_Events_CL\n| where log_type_s == 'directory_event'\n| where event_type_s == 'login_attempt'\n| where success_b == true\n| extend HourUTC = hourofday(TimeGenerated)\n| extend HourAEST = (HourUTC + 10) % 24\n| where HourAEST < 6 or HourAEST >= 22\n| project\n    TimeGenerated,\n    User = initiated_by_username_s,\n    Device = system_displayName_s,\n    HourAEST,\n    Country = geoip_country_code_s,\n    IP = client_ip_s",
+    "queryFrequency": "PT30M",
+    "queryPeriod": "PT30M",
+    "triggerOperator": "GreaterThan",
+    "triggerThreshold": 0,
+    "suppressionDuration": "PT2H",
+    "suppressionEnabled": false,
+    "tactics": ["InitialAccess"],
+    "techniques": ["T1078"],
+    "incidentConfiguration": {
+      "createIncident": true,
+      "groupingConfiguration": {
+        "enabled": true,
+        "reopenClosedIncident": false,
+        "lookbackDuration": "PT2H",
+        "matchingMethod": "AllEntities",
+        "groupByEntities": []
+      }
+    }
+  }
+}

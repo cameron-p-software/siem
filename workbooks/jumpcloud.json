@@ -1,0 +1,198 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# JumpCloud Security Overview\n---\nReal-time visibility into device logins, software changes, and managed device and user inventory from JumpCloud MDM."
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a1b2c3d4-0001-0001-0001-a1b2c3d4e5f6",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "value": { "durationMs": 86400000 },
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "label": "Time Range"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Summary" },
+      "name": "summary-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "union\n  (JumpCloud_Events_CL | where TimeGenerated {TimeRange} | where log_type_s == 'directory_event' | summarize Value = count() | extend Metric = 'Total Events'),\n  (JumpCloud_Events_CL | where TimeGenerated {TimeRange} | where log_type_s == 'directory_event' and event_type_s == 'login_attempt' | summarize Value = count() | extend Metric = 'Login Attempts'),\n  (JumpCloud_Events_CL | where TimeGenerated {TimeRange} | where log_type_s == 'directory_event' and event_type_s == 'login_attempt' and success_b == false | summarize Value = count() | extend Metric = 'Failed Logins'),\n  (JumpCloud_Events_CL | where TimeGenerated {TimeRange} | where log_type_s == 'directory_event' and di_service_s == 'software' | summarize Value = count() | extend Metric = 'Software Changes')\n| project Metric, Value",
+        "size": 4,
+        "title": "",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "tiles",
+        "tileSettings": {
+          "showBorder": true,
+          "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+          "leftContent": {
+            "columnMatch": "Value",
+            "formatter": 12,
+            "formatOptions": { "palette": "auto" },
+            "numberFormat": { "unit": 17, "options": { "maximumSignificantDigits": 3, "maximumFractionDigits": 2 } }
+          }
+        }
+      },
+      "name": "summary-tiles"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Events Over Time" },
+      "name": "chart-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where TimeGenerated {TimeRange}\n| where log_type_s == 'directory_event'\n| summarize Events = count() by bin(TimeGenerated, 1h), di_service_s\n| render timechart",
+        "size": 0,
+        "title": "Directory Events by Service (Hourly)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      },
+      "name": "events-over-time"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Login Activity" },
+      "name": "logins-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where TimeGenerated {TimeRange}\n| where log_type_s == 'directory_event' and event_type_s == 'login_attempt'\n| summarize count() by tostring(success_b)\n| project Result = iff(success_b == 'true', 'Success', 'Failed'), Count = count_",
+        "size": 3,
+        "title": "Login Results",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "piechart"
+      },
+      "customWidth": "30",
+      "name": "login-pie"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where TimeGenerated {TimeRange}\n| where log_type_s == 'directory_event' and event_type_s == 'login_attempt'\n| project\n    TimeGenerated,\n    Device = system_displayName_s,\n    User = initiated_by_username_s,\n    Success = success_b,\n    Country = geoip_country_code_s,\n    City = geoip_city_s,\n    IP = client_ip_s\n| order by TimeGenerated desc\n| take 100",
+        "size": 0,
+        "title": "Recent Login Attempts",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Success",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  { "operator": "==", "thresholdValue": "false", "representation": "failed", "text": "Failed" },
+                  { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "Success" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "70",
+      "name": "login-table"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Software Changes" },
+      "name": "software-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where TimeGenerated {TimeRange}\n| where log_type_s == 'directory_event' and di_service_s == 'software'\n| project\n    TimeGenerated,\n    EventType = event_type_s,\n    Device = system_displayName_s,\n    Application = application_name_s,\n    Version = application_version_s\n| order by TimeGenerated desc\n| take 100",
+        "size": 0,
+        "title": "Recent Software Changes",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "software-table"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Device Inventory" },
+      "name": "devices-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where log_type_s == 'system'\n| summarize arg_max(TimeGenerated, *) by hostname_s\n| project\n    Device = displayName_s,\n    Hostname = hostname_s,\n    OS = os_s,\n    Active = active_b,\n    LastSeen = lastContact_t\n| order by LastSeen desc",
+        "size": 0,
+        "title": "Managed Devices",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "device-table"
+    },
+    {
+      "type": 1,
+      "content": { "json": "## Active Sessions" },
+      "name": "sessions-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "JumpCloud_Events_CL\n| where log_type_s == 'logged_in_user'\n| summarize arg_max(TimeGenerated, *) by username_s, host_s\n| project\n    User = username_s,\n    Device = host_s,\n    LastSeen = TimeGenerated\n| order by LastSeen desc",
+        "size": 0,
+        "title": "Currently Logged In Users",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      },
+      "name": "sessions-table"
+    }
+  ],
+  "styleSettings": {},
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

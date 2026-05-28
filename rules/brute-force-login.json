@@ -1,0 +1,28 @@
+{
+  "kind": "Scheduled",
+  "properties": {
+    "displayName": "JumpCloud - Brute Force Login Attempt",
+    "description": "Alerts when 6 or more failed login attempts occur for the same user on the same device within 10 minutes.",
+    "severity": "Medium",
+    "enabled": true,
+    "query": "JumpCloud_Events_CL\n| where log_type_s == 'directory_event'\n| where event_type_s == 'login_attempt'\n| where success_b == false\n| summarize\n    FailedAttempts = count(),\n    FirstAttempt = min(TimeGenerated),\n    LastAttempt = max(TimeGenerated),\n    IPs = make_set(client_ip_s),\n    Countries = make_set(geoip_country_code_s)\n    by initiated_by_username_s, system_displayName_s, bin(TimeGenerated, 10m)\n| where FailedAttempts >= 6\n| project\n    TimeGenerated,\n    User = initiated_by_username_s,\n    Device = system_displayName_s,\n    FailedAttempts,\n    FirstAttempt,\n    LastAttempt,\n    IPs,\n    Countries",
+    "queryFrequency": "PT10M",
+    "queryPeriod": "PT10M",
+    "triggerOperator": "GreaterThan",
+    "triggerThreshold": 0,
+    "suppressionDuration": "PT1H",
+    "suppressionEnabled": false,
+    "tactics": ["CredentialAccess"],
+    "techniques": ["T1110"],
+    "incidentConfiguration": {
+      "createIncident": true,
+      "groupingConfiguration": {
+        "enabled": true,
+        "reopenClosedIncident": false,
+        "lookbackDuration": "PT1H",
+        "matchingMethod": "AllEntities",
+        "groupByEntities": []
+      }
+    }
+  }
+}

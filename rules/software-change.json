@@ -1,0 +1,28 @@
+{
+  "kind": "Scheduled",
+  "properties": {
+    "displayName": "JumpCloud - Software Change on Managed Device",
+    "description": "Alerts when software is added, removed, or changed on any managed device.",
+    "severity": "Low",
+    "enabled": true,
+    "query": "JumpCloud_Events_CL\n| where log_type_s == 'directory_event'\n| where di_service_s == 'software'\n| where event_type_s in ('software_add', 'software_remove', 'software_change')\n| summarize\n    Changes = count(),\n    Applications = make_set(application_name_s)\n    by system_displayName_s, event_type_s, bin(TimeGenerated, 1h)\n| project\n    TimeGenerated,\n    Device = system_displayName_s,\n    ChangeType = event_type_s,\n    Changes,\n    Applications",
+    "queryFrequency": "PT1H",
+    "queryPeriod": "PT1H",
+    "triggerOperator": "GreaterThan",
+    "triggerThreshold": 0,
+    "suppressionDuration": "PT1H",
+    "suppressionEnabled": false,
+    "tactics": ["Execution"],
+    "techniques": ["T1072"],
+    "incidentConfiguration": {
+      "createIncident": true,
+      "groupingConfiguration": {
+        "enabled": true,
+        "reopenClosedIncident": false,
+        "lookbackDuration": "PT1H",
+        "matchingMethod": "AllEntities",
+        "groupByEntities": []
+      }
+    }
+  }
+}

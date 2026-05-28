@@ -1,0 +1,28 @@
+{
+  "kind": "Scheduled",
+  "properties": {
+    "displayName": "JumpCloud - Login from Unusual Country",
+    "description": "Alerts when a device login occurs from a country outside the expected list (AU, IN, PE).",
+    "severity": "High",
+    "enabled": true,
+    "query": "JumpCloud_Events_CL\n| where log_type_s == 'directory_event'\n| where event_type_s == 'login_attempt'\n| where success_b == true\n| where geoip_country_code_s !in ('AU', 'IN', 'PE')\n| where isnotempty(geoip_country_code_s)\n| project\n    TimeGenerated,\n    User = initiated_by_username_s,\n    Device = system_displayName_s,\n    Country = geoip_country_code_s,\n    City = geoip_city_s,\n    IP = client_ip_s",
+    "queryFrequency": "PT5M",
+    "queryPeriod": "PT5M",
+    "triggerOperator": "GreaterThan",
+    "triggerThreshold": 0,
+    "suppressionDuration": "PT4H",
+    "suppressionEnabled": false,
+    "tactics": ["InitialAccess"],
+    "techniques": ["T1078"],
+    "incidentConfiguration": {
+      "createIncident": true,
+      "groupingConfiguration": {
+        "enabled": true,
+        "reopenClosedIncident": false,
+        "lookbackDuration": "PT4H",
+        "matchingMethod": "AllEntities",
+        "groupByEntities": []
+      }
+    }
+  }
+}
